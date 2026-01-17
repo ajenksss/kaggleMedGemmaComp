@@ -1,0 +1,54 @@
+# Competition Context: Google MedGemma Impact Hackathon
+
+## 1. The Objective
+**"Build impactful, agentic applications using the MedGemma family of models."**
+The goal is not just to fine-tune a model, but to integrate it into a **workflow** that solves a real-world clinical problem.
+
+## 2. Prize Categories & Strategy
+We are targeting a "Full Sweep" strategy by aligning our architecture with multiple distinct prize tracks.
+
+| Prize Track | Value | Our Strategy (TPT System) |
+| :--- | :--- | :--- |
+| **Agentic Workflow** | **$10,000** | We treat the *entire system* as an Agent. Layer 1 (TDA) senses, Layer 2 (Physics) gates, Layer 4 (MedGemma) reasons. It is a multi-agent system where math is an agent. |
+| **Edge AI / Efficiency** | **$5,000** | Our TDA + 2B Model stack is designed for low-power bedside monitors. We run efficiently without massive cloud GPUs. |
+| **Novel Application** | **$10,000** | "Topological Vital Signs" is a completely novel task. MedGemma was trained on text, not "Shape Geometry." We are creating a new modality. |
+
+## 3. Judging Criteria
+The winners are decided based on a weighted score.
+
+### A. Impact & Utility (40%)
+*   **Question**: Does this solve a real problem?
+*   **Our Answer**: Sepsis is the #1 hospital killer. Our "Respiratory Rate" and "Instability Detection" limits are directly informed by clinical reality.
+
+### B. Technical Merit (30%)
+*   **Question**: Is the engineering impressive?
+*   **Our Answer**: We aren't just calling an API.
+    *   **TDA**: Mathematical topology (homology).
+    *   **PINN**: Physics-informed neural networks.
+    *   **KAN**: Kolmogorov-Arnold Networks.
+    *   **Interactive 3D**: WebGL visualization.
+    *   *This is objectively "Hard Engineering".*
+
+### C. Human-Centered Design (20%)
+*   **Question**: Is it usable and explainable?
+*   **Our Answer**:
+    *   **Visuals**: "Bouncing Ball" makes complex math intuitive.
+    *   **Trust**: Physics Layer = "We filter hallucinations."
+    *   **Transparency**: MedGemma explains its math ("Manifold Radius").
+
+### D. Video Presentation (10%)
+*   **Requirement**: 2-minute video.
+*   **Our Answer**: We have a scripted "Golden Path" (Hook -> Solution -> Safety -> Proof) designed to maximize this score.
+
+## 4. Key Constraints
+1.  **Model Usage**: Must use a Gemma/MedGemma variant.
+    *   *We use `google/gemma-2b-it` (Simulated MedGemma) for the demo, with configurability for the real weights.*
+2.  **Submission**: Kaggle Notebook or GitHub Repo + Video.
+    *   *We have a clean `submission/` folder ready for zip.*
+3.  **Data Privacy**: Cannot use restricted data.
+    *   *We use generated synthetic waveforms (privacy-safe).*
+
+## 5. The "Winning Meta-Narrative"
+Most teams will submit a RAG Chatbot ("Upload your PDF, ask a question").
+We are submitting a **Real-Time Computational Biosensor**.
+We stand out because we moved **Upstream** (Monitoring/Prediction) rather than **Downstream** (Search/Summary).
