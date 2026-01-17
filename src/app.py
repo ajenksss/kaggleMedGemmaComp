@@ -66,7 +66,8 @@ st.markdown("**Goal**: Resolve ambiguity between 'Normal Vitals' and 'Unstable P
 
 # --- MEDGEMMA HERO SECTION (The "Meaning Bridge") ---
 st.markdown("---")
-copilot_container = st.container(border=True)
+# Use an empty placeholder that we can overwrite every loop iteration
+copilot_placeholder = st.empty()
 
 # --- METRICS ROW ---
 kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
@@ -163,7 +164,8 @@ if st.session_state.running:
                  display_decision = decision
             
         # --- UI UPDATE: COPILOT HERO ---
-        with copilot_container:
+        # Clear and rebuild the container each frame to prevent stacking
+        with copilot_placeholder.container(border=True):
             # 1. Status Banner
             state = display_decision.get('risk_state', 'GREEN')
             
