@@ -2,20 +2,21 @@
 echo ===================================================
 echo 🏥 MedGemma Triage Copilot - Starting Demo...
 echo ===================================================
+
+:: Ensure we are running from the script's directory
 cd /d "%~dp0"
 
-echo Activating environment and launching Streamlit...
+echo Launching Streamlit via Python helper...
+echo Working Directory: %CD%
 echo.
 
-:: Check if streamlit is in path, just in case
-where streamlit >nul 2>nul
+:: Launch using python module directly
+python -m streamlit run src/app.py
+
 if %errorlevel% neq 0 (
-    echo Error: Streamlit not found in PATH.
-    echo Please ensure you have installed the dependencies: pip install -r requirements.txt
+    echo.
+    echo [ERROR] Demo failed to start.
+    echo Please verify that 'pip install -r requirements.txt' has been run.
+    echo.
     pause
-    exit /b
 )
-
-streamlit run src/app.py
-
-pause
