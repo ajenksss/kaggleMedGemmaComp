@@ -207,9 +207,11 @@ if st.session_state.running:
         hist["HR"].append(row["HR"])
         hist["MAP"].append(row["MAP"])
         hist["Shape"].append(shape_score)
+        hist["Risk"].append(risk_score)
         hist["RR"].append(row["RR"])
         if len(hist["HR"]) > 100: 
-            for k in hist: hist[k].pop(0)
+            for k in hist: 
+                if len(hist[k]) > 0: hist[k].pop(0)
             
         chart_vitals.line_chart(pd.DataFrame({"HR": hist["HR"], "MAP": hist["MAP"]}))
         
