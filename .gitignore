@@ -6,11 +6,5 @@ venv/
 .env
 .DS_Store
 
-# Beads (keep issues.jsonl, ignore local db cache)
-.beads/beads.db
-.beads/beads.db-shm
-.beads/beads.db-wal
-.beads/*.sock
-
 # Large files
 archive_scratchpad/

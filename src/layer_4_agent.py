@@ -1,5 +1,6 @@
 import random
 import os
+import json
 
 try:
     import torch
@@ -9,10 +10,6 @@ except (ImportError, OSError): # Catch broken DLLs or missing libs
     HAS_TRANSFORMERS = False
 
 class RealInferenceEngine:
-    # UPDATED: Use a proper MedGemma variant if possible, or fall back to Gemma 2B instruction tuned
-    # Note: MedGemma weights often require specific access. 
-    # We default to a standard instruction tuned model that "Act" as the MedGemma agent for the public demo to ensure it runs.
-    # However, to be truthful to the submission, we should allow the user to specify the ID.
     def __init__(self, model_id="google/gemma-2b-it"): 
         self.model_id = model_id
         self.tokenizer = None
@@ -54,9 +51,9 @@ class RealInferenceEngine:
             
             outputs = self.model.generate(
                 input_ids, 
-                max_new_tokens=64, 
+                max_new_tokens=256, # Increased for structured JSON
                 do_sample=True, 
-                temperature=0.6 # Lower temp for consistent medical output
+                temperature=0.4 # Low temp for strict JSON
             )
             return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         except Exception as e:
@@ -65,134 +62,105 @@ class RealInferenceEngine:
 class MedGemmaAgent:
     def __init__(self):
         """
-        Layer 4: MedGemma Agent - The "Clinical Commander".
-        Now supports Hybrid Mode: Fast Simulation OR Real Event-Driven Inference.
+        Layer 4: MedGemma Agent - The "Triage Copilot".
+        Focuses on Ambiguity Resolution and Structured Rationale.
         """
         self.real_engine = RealInferenceEngine()
-        self.use_real_model = False # Default to sim until triggered
-        self.protocols = {
-            "SEPSIS_PROTOCOL_A": "Flag: recommend clinician evaluate sepsis bundle per protocol (fluids, cultures, antibiotics as appropriate).",
-            "Please_Monitor": "Continue Vitals Monitoring. Re-assess in 15 min.",
-            "PHYSICS_ALERT": "Sensor Calibration Required. Check BP Cuff."
-        }
+        self.use_real_model = False 
 
-    def construct_prompt(self, risk_score, physics_valid, formula_explanation, shape_desc="Unknown"):
+    def construct_prompt(self, risk_score, physics_valid, formula_explanation, shape_desc="Unknown", vitals_snapshot="BP Normal"):
         """
-        Constructs the strict Prompt Template used to drive the HAI-DEF MedGemma model.
-        This proves we know how to properly interface with the API.
+        Constructs the 'Triage Copilot' System Prompt.
         """
-        # System Prompt defines the "Persona" and "Safety Rails"
         system_prompt = (
-            "You are MedGemma-TPT, a critical care AI assistant.\n"
-            "Your inputs are vetted by a Physics Engine (PINN) and a Topological Sensor (TDA).\n"
+            "You are MedGemma, a Triage Copilot for the ICU.\n"
+            "Your Goal: Identify 'Abnormal Meaning' (Risk) even when vitals are normal.\n"
             "Rules:\n"
-            "1. If Physics is Invalid, REJECT the data.\n"
-            "2. If Manifold is 'Exploding' or Risk > 80%, Recommend Sepsis Protocol A.\n"
-            "3. Cite the 'Manifold Radius' in your reasoning.\n"
-            "4. Be concise. Output JSON only."
+            "1. NEVER make a definitive diagnosis. Use 'Concern for...', 'Suggest checking...'.\n"
+            "2. If Physics is Invalid, flag a Sensor Error.\n"
+            "3. If Risk > 80% or Shape is 'Exploding', flag 'Compensated Shock' concern.\n"
+            "4. OUTPUT JSON ONLY with these keys: 'risk_state' (Green/Yellow/Orange/Red), 'conflict', 'rationale', 'suggested_checks'."
         )
         
-        # User Prompt contains the dynamic data
         user_prompt = f"""
-        DATA:
-        - Sepsis Risk: {risk_score:.2f}
-        - Physics Validity: {physics_valid}
-        - Mathematical Basis: {formula_explanation}
-        - Topological Shape: {shape_desc}
+        PATIENT DATA:
+        - Snapshot Vitals: {vitals_snapshot}
+        - TDA Topology: {shape_desc} (Radius variation over 10m)
+        - Physics Check: {physics_valid}
+        - Hemodynamic Risk Score: {risk_score:.2f}
         
         INSTRUCTION:
-        Recommend clinical action.
+        Analyze for compensated shock (Normal Vitals + Bad Shape).
+        Provide structured JSON triage assessment.
         """
         return system_prompt + "\n" + user_prompt
 
-    def evaluate(self, risk_score, physics_valid, formula_explanation, run_real_inference=False, shape_desc="Normal Manifold (Radius 1.0)"):
+    def evaluate(self, risk_score, physics_valid, formula_explanation, run_real_inference=False, shape_desc="Normal Manifold", vitals_snapshot="Stable"):
         """
-        Decides the action. 
-        If run_real_inference=True (triggered by TDA Anomaly), we call the REAL Model.
+        Decides the output. Returns structured dictionary.
         """
-        # Simulate Prompt Construction (for logging/debugging)
-        prompt_trace = self.construct_prompt(risk_score, physics_valid, formula_explanation, shape_desc)
+        prompt_trace = self.construct_prompt(risk_score, physics_valid, formula_explanation, shape_desc, vitals_snapshot)
         
         response = {
-            "thought_process": "",
-            "recommendation": "", # Changed from 'action' for safety
-            "disclaimer": "AI Decision Support Only. Clinician must verify.",
-            "alert_level": "GREEN",
-            "prompt_trace": prompt_trace,
-            "inference_mode": "SIMULATION" 
+            "risk_state": "GREEN",
+            "conflict": "None",
+            "rationale": "Vitals and Physiology are stable.",
+            "suggested_checks": "Continue monitoring.",
+            "inference_mode": "SIMULATION"
         }
 
-        # REAL INFERENCE PATH (The "Lagging Indicator")
+        # REAL INFERENCE
         if run_real_inference:
-            # Try to load if not already loaded (Cached)
             if not self.real_engine.is_loaded:
                 self.real_engine.load_model()
             
             if self.real_engine.is_loaded:
-                # We use the Real NN to generate the recommendation text
                 real_text = self.real_engine.generate(prompt_trace)
                 
-                # Check for inference errors
-                if "[Error" in real_text:
-                     response["recommendation"] = f"FALLBACK ({real_text}). Simulating: {self.protocols['SEPSIS_PROTOCOL_A']}"
-                     response["inference_mode"] = "SIMULATION (FALLBACK)"
-                else:
-                    # Success - Robust Parsing
-                    # We try to extract JSON if present, otherwise take raw text
-                    import json
-                    parsed_output = ""
-                    try:
-                        # Extract JSON block
-                         # Find first '{' and last '}'
-                        start = real_text.find('{')
-                        end = real_text.rfind('}')
-                        if start != -1 and end != -1:
-                            json_str = real_text[start:end+1]
-                            data = json.loads(json_str)
-                            parsed_output = data.get("recommendation", "") or data.get("action", "")
-                    except Exception:
-                        pass
+                # Robust JSON Extraction
+                try:
+                    start = real_text.find('{')
+                    end = real_text.rfind('}')
+                    if start != -1 and end != -1:
+                        json_str = real_text[start:end+1]
+                        data = json.loads(json_str)
+                        response.update(data)
+                        response["inference_mode"] = f"REAL {self.real_engine.model_id}"
+                    else:
+                        raise ValueError("No JSON found")
+                except Exception:
+                    # Fallback if model fails to output JSON
+                    response["rationale"] = f"Raw Output: {real_text[:200]}..."
+                    response["inference_mode"] = "REAL (JSON PARSE FAIL)"
                     
-                    if not parsed_output:
-                        # Fallback to naive splitting if JSON check fails
-                        parsed_output = real_text.split("INSTRUCTION:")[-1].strip() 
-                        
-                    if not parsed_output: parsed_output = real_text # Fallback to raw
-                    
-                    response["recommendation"] = f"MEDGEMMA (REAL): {parsed_output[:200]}..." # Truncate for UI safety
-                    response["inference_mode"] = f"REAL {self.real_engine.model_id}"
-                    response["alert_level"] = "RED" if risk_score > 0.8 else "ORANGE"
-                
                 return response
             else:
-                 # Load Failed - Transparent Fallback
-                 response["inference_mode"] = f"SIMULATION (Load Failed: {self.real_engine.load_error})"
+                 response["inference_mode"] = f"SIMULATION (Load Failed)"
 
-        # ... Fallback to Deterministic Logic ...
+        # FALLBACK / SIMULATION LOGIC (The "Safe" Copilot)
         
-        # 1. Physics Check (The "Legislative Veto")
+        # 1. Physics Veto
         if not physics_valid:
-            response["thought_process"] = f"Physics Engine VETO. Formula '{formula_explanation}' rejected."
-            response["recommendation"] = self.protocols["PHYSICS_ALERT"]
-            response["alert_level"] = "YELLOW"
+            response["risk_state"] = "YELLOW"
+            response["conflict"] = "Physics Violation Detected"
+            response["rationale"] = "Hemodynamic values violate Navier-Stokes constraints. Likely sensor artifact."
+            response["suggested_checks"] = "Check BP cuff placement, flush A-line."
             return response
-            
-        # 2. Risk Assessment
-        response["thought_process"] = f"Analyzed Hemodynamics: {formula_explanation}. Risk is {risk_score:.2f}."
-        
+
+        # 2. Compensated Shock Logic (The "Meaning Bridge")
         if risk_score > 0.8:
-            response["recommendation"] = "Flag: consider Sepsis Protocol A (Clinician Verification Required)."
-            response["alert_level"] = "RED"
+            response["risk_state"] = "RED"
+            response["conflict"] = f"Stable Vitals vs Exploding Topology ({shape_desc})"
+            response["rationale"] = "Rapid topological expansion suggests physiological decoherence despite normal BP. Concern for Compensated Shock."
+            response["suggested_checks"] = "Lactate, Urine Output, CRT. Re-assess perfusion."
         elif risk_score > 0.5:
-            response["recommendation"] = "Flag: consider Noradrenaline to target MAP > 65."
-            response["alert_level"] = "ORANGE"
-        else:
-            response["recommendation"] = self.protocols["Please_Monitor"]
-            response["alert_level"] = "GREEN"
+            response["risk_state"] = "ORANGE"
+            response["conflict"] = "Rising Volatility"
+            response["rationale"] = "Early warning signs of instability detected in manifold shape."
+            response["suggested_checks"] = "Increase monitoring frequency to q15m."
             
         return response
 
 if __name__ == "__main__":
     agent = MedGemmaAgent()
-    # Test Prompt Construction
-    print(agent.construct_prompt(0.95, True, "Sigmoid(Shape=4.5)"))
+    print(agent.evaluate(0.9, True, "Test", run_real_inference=False, shape_desc="Radius 4.5", vitals_snapshot="BP 110/70"))

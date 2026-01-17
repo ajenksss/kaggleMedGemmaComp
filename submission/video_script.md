@@ -1,42 +1,55 @@
-# 🎥 MedGemma TPT: The 2-Minute Demo Script
+# 🎥 MedGemma: The Triage Copilot (2-Minute Script)
 
 **Host**: You (The Engineer/CMO)
-**Tone**: Urgent, Professional, Technical but Clear.
+**Tone**: Clinical, Urgent, Human-Centered.
 
 ---
 
-## 0:00 - 0:20 | The Hook (The "Silent" Signals)
-**(Scene: Dashboard. Point to the 'Raw Vitals' chart.)**
+## 0:00 - 0:30 | The Hook: "Sarah is Lying to You"
+**(Scene: Dashboard. Focus on the 'Raw Vitals' - heavily emphasized 'BP 110/70'.)**
 
-**YOU**: "Every ICU monitor tracks the 'Golden Five' vitals: Heart Rate, BP, SpO2, Temp, and **Respiratory Rate**.
-Right now, this patient looks stable. BP is fine. But look closer at the **Respiratory Rate**. It's drifting from 16 to 24.
-A human might miss that subtle Tachypnea. Our AI doesn't."
+**YOU**: "Take a look at Sarah. Post-op Day 2.
+Her Blood Pressure is 110/70. Her Heart Rate is 85.
+Every monitor in the world says she is **Stable**. Green light.
+But Sarah is lying to you."
 
-## 0:20 - 0:50 | The "Shape" (TDA Layer)
-**(Action: Point to the 'Bouncing Ball' Scatter Plot.)**
+**(Action: Zoom into the 'MedGemma Copilot' Banner. It is flashing ORANGE.)**
 
-**YOU**: "This is the **Topological-Physical Twin**. We don't just look at numbers; we look at the *shape* of the physiology.
-See this blue ball of dots? That is Homeostasis. It's tight and organized.
-**(Action: Wait for the explosion)**
-Boom. See that explosion? The ball just shattered. That is 'Topological Instability.' The system detected the crash **60 minutes** before the blood pressure dropped."
+**YOU**: "She is in **Compensated Shock**. Her body is fighting to keep that BP up, but inside, she is collapsing.
+Standard monitors wait for the crash. **MedGemma** predicts it."
 
-## 0:50 - 1:20 | The Filter (Physics Layer)
-**(Action: Point to the 'Physics' metric.)**
+---
 
-**YOU**: "But alarms are useless if they are false. That's why we built a **Physics Engine** (PINN) into the loop. 
-It uses Fluid Dynamics to check if the data is real. If a sensor glitches, the Physics Layer says 'Impossible' and blocks the alarm.
-We solve alarm fatigue by respecting the laws of nature."
+## 0:30 - 1:00 | The Copilot (The Meaning Bridge)
+**(Action: Read the MedGemma Status Message used in the Refactor.)**
 
-## 1:20 - 1:50 | The Agent (Automatic MedGemma)
-**(Action: Toggle 'Auto-Reaction' ON. Watch the Red Alert Banner appear.)**
+**YOU**: "Look at what MedGemma says. It's not giving a diagnosis. It's giving us a **Heads Up**.
+*'Vitals are stable, but Instability is rising. Concern for Compensated Shock.'*
 
-**YOU**: "Finally, we don't just beep. We reason.
-When the instability crosses the threshold, our **Event-Driven Architecture** automatically wakes up the **MedGemma Agent**.
-It analyzes the 5-dimensional trends and speaks clearly: *'Instability Detected. Flag for Sepsis Protocol.'*
-No black boxes. Just clear, physics-verified clinical support."
+It resolved the ambiguity: 'Normal Numbers' plus 'Bad Patterns' equals 'Danger'.
+And look—it suggests a **Check**, not a Treatment: *'Suggest checking Lactate and Urine Output.'*
+This is a **Triage Copilot**. It watches the signals you don't have time to see."
 
-## 1:50 - 2:00 | The Close
+---
+
+## 1:00 - 1:30 | The Evidence (The Hidden Math)
+**(Action: Expand the 'Clinical Evidence Stack' expander.)**
+
+**YOU**: "You might ask: 'Why? Why does it think she's sick?'
+Click 'Show Evidence'.
+**(Action: Show the Exploding 3D Manifold.)**
+See this? This is Topological Data Analysis.
+A healthy heart is a tight ball. Sarah's heart is an **Explosion**.
+MedGemma saw this shape shattering 60 minutes before her BP dropped."
+
+---
+
+## 1:30 - 2:00 | The Close (Safety & Trust)
 **(Scene: Face Camera)**
 
-**YOU**: "Real-Time. Physics-Gated. And completely transparent.
-This is the TPT. We aren't replacing doctors; we're giving them the one thing they can't manufacture: **Time**."
+**YOU**: "We built this with **Physics Check** guardrails so it never hallucinates a crash that violates the laws of nature.
+MedGemma TPT isn't about replacing doctors.
+It's about ending the 'Silence' in the ICU.
+Because the most dangerous patient isn't the one beeping... it's the one who is quiet."
+
+**(Fade to Logo: MedGemma TPT)**

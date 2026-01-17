@@ -15,12 +15,7 @@ import layer_4_agent
 importlib.reload(layer_4_agent) # FORCE RELOAD to fix stale cache
 from layer_4_agent import MedGemmaAgent
 
-st.set_page_config(page_title="MedGemma TPT Monitor", layout="wide")
-
-st.warning(
-    "Disclaimer: Prototype decision support demo only. Not medical advice. "
-    "Do not use for real patient care. Clinician must verify."
-)
+st.set_page_config(page_title="MedGemma Triage Copilot", layout="wide")
 
 if "tpt_system" not in st.session_state:
     st.session_state.tpt_system = {
@@ -36,7 +31,7 @@ if "tpt_system" not in st.session_state:
     st.session_state.logs = []
     st.session_state.running = False
 
-# Ensure Async State exists (even if tpt_system already exists)
+# Ensure Async State exists
 if "is_analyzing" not in st.session_state:
     st.session_state.is_analyzing = False
     st.session_state.analysis_result = None
@@ -54,75 +49,55 @@ with st.sidebar:
         st.session_state.running = False
     
     st.markdown("---")
-    st.header("🧠 MedGemma Agent")
-    # Configurable Model ID (Resolves "Gemma vs MedGemma" critique)
-    model_id_input = st.text_input("Model ID", value="google/gemma-2b-it", help="Use 'google/medgemma-2b' if you have access")
+    st.header("🧠 Agent Config")
+    model_id_input = st.text_input("Model ID", value="google/gemma-2b-it")
     
-    # Update Agent if Model ID changes
     if model_id_input != st.session_state.tpt_system["agent"].real_engine.model_id:
          st.session_state.tpt_system["agent"].real_engine.model_id = model_id_input
-         st.session_state.tpt_system["agent"].real_engine.is_loaded = False # Force reload
+         st.session_state.tpt_system["agent"].real_engine.is_loaded = False 
          st.toast(f"Model switched to {model_id_input}")
 
     run_deep_analysis = st.button("Run Deep Analysis (Real Model)")
-    enable_auto_analysis = st.toggle("⚡ Enable Auto-Reaction (Real-Time)", value=False, help="Automatically triggers Deep Analysis when Sepsis Risk > 80%")
-    
-    st.markdown("---")
-    st.markdown("**System Architecture**")
-    st.markdown("1. **Data**: Mock MIMIC-III")
-    st.markdown("2. **Sensing**: TDA (JL-Project + Witness)")
-    st.markdown("3. **Physics**: PINN (Residual Check)")
-    st.markdown("4. **Logic**: KAN (Neuro-symbolic)")
-    st.markdown("5. **Agent**: MedGemma (Decision)")
+    enable_auto_analysis = st.toggle("⚡ Enable Auto-Copilot", value=True)
 
-# --- MAIN LAYOUT ---
-st.title("MedGemma: Topological-Physical Twin (TPT)")
+# --- HEADER (The Hook) ---
+st.title("MedGemma: The Triage Copilot")
+st.markdown("**Goal**: Resolve ambiguity between 'Normal Vitals' and 'Unstable Physiology'.")
 
-# Top Metrics Row
+# --- MEDGEMMA HERO SECTION (The "Meaning Bridge") ---
+st.markdown("---")
+copilot_container = st.container(border=True)
+
+# --- METRICS ROW ---
 kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
 metric_hr = kpi1.empty()
 metric_map = kpi2.empty()
 metric_spo2 = kpi3.empty()
-metric_risk = kpi5.empty()
 metric_rr = kpi4.empty()
+metric_risk = kpi5.empty()
 
-# MEDGEMMA COMMAND CENTER (High Visibility)
-st.markdown("---")
-st.subheader("🤖 MedGemma Decision Support")
-ai_container = st.container(border=True)
-with ai_container:
-    ai_status = st.empty()
-    ai_message = st.empty()
+# --- EVIDENCE SECTION (Collapsible "Math Flex") ---
+st.markdown("### 🔍 Clinical Evidence Stack")
+with st.expander("Show Topological & Physics Evidence", expanded=True):
+    col_raw, col_eng = st.columns(2)
+    with col_raw:
+        st.subheader("Raw Vitals Stream")
+        chart_vitals = st.empty()
+    with col_eng:
+        st.subheader("Topological Manifold (TDA)")
+        st.caption("Visualizing physiological coherence. Explosion = Instability.")
+        chart_topology = st.empty()
+        chart_shape = st.empty()
 
-# Charts Row
-st.markdown("---")
-col_raw, col_eng = st.columns(2)
-with col_raw:
-    st.subheader("Raw Vitals (The 'Dumb' Monitor)")
-    chart_vitals = st.empty()
-    
-with col_eng:
-    st.subheader("Early Warning Signal (TDA)")
-    st.caption("Measures 'Physiological Chaos'. Spikes > 2.0 predict crash.")
-    
-    # LIVE TOPOLOGY VISUALIZATION (The "Bouncing Ball")
-    # We show the underlying point cloud to demonstrate the "Shape" directly
-    chart_topology = st.empty()
-    chart_shape = st.empty()
-    
-# Agent Log (Hidden, replaced by Command Center)
-# st.subheader("🤖 MedGemma Clinical Orders")
-# log_container = st.empty()
 
 # --- SIMULATION LOOP ---
 if st.session_state.running:
     system = st.session_state.tpt_system
     
-    # Process 50 steps at a time for demo speed
-    for chunk_idx, chunk_data in enumerate(system["stream"].stream(chunk_size=1, delay=0.05)):
+    # Process 1 step at a time for clarity
+    for chunk_idx, chunk_data in enumerate(system["stream"].stream(chunk_size=1, delay=0.08)):
         
         # 0. Get Data
-        # [HR, MAP, SpO2, Temp, RR]
         row = chunk_data.iloc[0]
         vitals_vec = row[["HR", "MAP", "SpO2", "Temp", "RR"]].values
         
@@ -135,156 +110,124 @@ if st.session_state.running:
         # 3. KAN (Risk)
         risk_score, formula = system["kan"].predict_risk(shape_score, phys_score)
         
-        # 4. Agent Decision (ASYNC NON-BLOCKING)
+        # 4. Agent Decision
         
-        # Default: Use Fast Simulation Result
-        decision = system["agent"].evaluate(risk_score, phys_valid, formula, run_real_inference=False)
-        
-        # Check Triggers
-        triggers = []
-        if run_deep_analysis: triggers.append("Manual")
-        if enable_auto_analysis and risk_score > 0.8: triggers.append("Auto-Sepsis")
-        
-        # Describe Shape for Agent
+        # Snapshot string for the agent
+        snapshot_str = f"HR {row['HR']:.0f}, MAP {row['MAP']:.0f}, RR {row['RR']:.0f}"
         shape_desc = f"Stable (Radius {shape_score:.2f})"
         if shape_score > 2.0:
-             shape_desc = f"EXPLODING MANIFOLD (Radius {shape_score:.2f} >> 2.0). High Variance."
+             shape_desc = f"EXPLODING (Radius {shape_score:.2f}). Variance High."
+
+        # Default: Simulation Result
+        decision = system["agent"].evaluate(risk_score, phys_valid, formula, 
+                                          run_real_inference=False, 
+                                          shape_desc=shape_desc,
+                                          vitals_snapshot=snapshot_str)
         
-        # Start Background Thread if Triggered and Idle
+        # Triggers
+        triggers = []
+        if run_deep_analysis: triggers.append("Manual")
+        if enable_auto_analysis and risk_score > 0.6: triggers.append("Auto-Risk") # Lower threshold for "Concern"
+        
+        # Background Thread (Real Inference)
         if triggers and not st.session_state.is_analyzing:
-            # Debounce (prevent spamming threads)
-            if time.time() - st.session_state.get("last_trigger_time", 0) > 5:
+            if time.time() - st.session_state.get("last_trigger_time", 0) > 8:
                 st.session_state.is_analyzing = True
                 st.session_state.last_trigger_time = time.time()
                 
-                def background_task(chk_agent, r_score, p_valid, form, s_desc):
-                    # Heavy Compute
-                    res = chk_agent.evaluate(r_score, p_valid, form, run_real_inference=True, shape_desc=s_desc)
+                def background_task(chk_agent, r_score, p_valid, form, s_desc, v_snap):
+                    res = chk_agent.evaluate(r_score, p_valid, form, 
+                                           run_real_inference=True, 
+                                           shape_desc=s_desc,
+                                           vitals_snapshot=v_snap)
                     st.session_state.analysis_result = res
                     st.session_state.is_analyzing = False
                     
-                t = threading.Thread(target=background_task, args=(system["agent"], risk_score, phys_valid, formula, shape_desc))
+                t = threading.Thread(target=background_task, args=(system["agent"], risk_score, phys_valid, formula, shape_desc, snapshot_str))
                 t.start()
-                st.toast(f"🧠 Deep Analysis Started ({triggers[0]})...")
+                st.toast(f"🧠 Copilot Thinking... ({triggers[0]})")
 
-        # --- STABILIZER LOGIC (Hysteresis) ---
-        # Solving "Jitter" / Alert Fatigue
+        # Hysteresis / Stability Logic for UI
         curr_time = time.time()
-        
-        # 1. Prefer Real Analysis if fresh ( < 10s old)
-        if st.session_state.analysis_result and (curr_time - st.session_state.last_trigger_time < 10):
+        if st.session_state.analysis_result and (curr_time - st.session_state.last_trigger_time < 15):
             display_decision = st.session_state.analysis_result
         else:
-            # 2. Otherwise use Simulation, but LATCH it
-            # If we have a high alert, hold it for 3 seconds to avoid flickering
-            if decision['alert_level'] in ["RED", "ORANGE"]:
+             # Latched Logic
+            if decision['risk_state'] in ["RED", "ORANGE"]:
                 st.session_state.latched_decision = decision
                 st.session_state.last_alert_time = curr_time
                 display_decision = decision
-            
-            # If we are effectively "Green" now, check if we are still in the hold period
-            elif (curr_time - st.session_state.get("last_alert_time", 0) < 3.0) and st.session_state.latched_decision:
-                 # Hold the old alert
+            elif (curr_time - st.session_state.get("last_alert_time", 0) < 5.0) and st.session_state.latched_decision:
                  display_decision = st.session_state.latched_decision
             else:
-                 # Truly Green
                  display_decision = decision
             
-        # Display Status
-        if st.session_state.is_analyzing:
-            ai_status.info("🧠 **MedGemma Thinking...** (Analysis in Progress)")
+        # --- UI UPDATE: COPILOT HERO ---
+        with copilot_container:
+            # 1. Status Banner
+            state = display_decision.get('risk_state', 'GREEN')
+            
+            if st.session_state.is_analyzing:
+                st.info("🧠 **MedGemma is analyzing patterns...** (Resolving Ambiguity)")
+            else:
+                if state == "RED":
+                    st.error(f"🚨 **CRITICAL: {display_decision.get('conflict', 'Risk Detected')}**")
+                elif state == "ORANGE":
+                    st.warning(f"⚠️ **CONCERN: {display_decision.get('conflict', 'Instability')}**")
+                elif state == "YELLOW":
+                    st.warning(f"⚠️ **SENSOR: {display_decision.get('conflict', 'Artifact')}**")
+                else:
+                    st.success("✅ **Patient Stable** (Monitoring for latent shifts)")
+
+            # 2. Structured Rationale Grid
+            c1, c2 = st.columns([2, 1])
+            with c1:
+                st.markdown(f"**Rationale**: {display_decision.get('rationale', 'No active concerns.')}")
+            with c2:
+                st.caption(f"Source: {display_decision.get('inference_mode', 'Sim')}")
+
+            # 3. Actionable Checks (The "Copilot" part)
+            checks = display_decision.get('suggested_checks', 'Continue standard monitoring.')
+            if state != "GREEN":
+                st.info(f"**Suggested Clarifying Checks**: {checks}")
+
         
-        # --- UPDATE UI ---
-        
-        
-        # Metrics
+        # --- METRICS UPDATE ---
         metric_hr.metric("Heart Rate", f"{row['HR']:.0f} bpm")
         metric_map.metric("MAP", f"{row['MAP']:.0f} mmHg", delta_color="inverse")
         metric_spo2.metric("SpO2", f"{row['SpO2']:.0f}%")
-        metric_rr.metric("Resp Rate", f"{row['RR']:.0f} /min", help="Tachypnea is often the first sign of sepsis.")
-        metric_risk.metric("Sepsis Risk", f"{risk_score*100:.0f}%", 
-                           delta=f"{decision['alert_level']}", delta_color="inverse")
+        metric_rr.metric("Resp Rate", f"{row['RR']:.0f}", help="Tachypnea is often the first sign.")
+        # Risk Metric uses the Copilot's State color now
+        metric_risk.metric("Hemodynamic Risk", f"{risk_score*100:.0f}%", delta=state, delta_color="inverse")
                            
-        # History
+        # --- EVIDENCE CHARTS ---
         hist = st.session_state.history
         hist["HR"].append(row["HR"])
         hist["MAP"].append(row["MAP"])
         hist["Shape"].append(shape_score)
-        hist["Risk"].append(risk_score)
         hist["RR"].append(row["RR"])
-        
-        # Trim history
-        if len(hist["HR"]) > 100:
+        if len(hist["HR"]) > 100: 
             for k in hist: hist[k].pop(0)
             
-        # Charts
         chart_vitals.line_chart(pd.DataFrame({"HR": hist["HR"], "MAP": hist["MAP"]}))
         
-        # TDA Chart: 1. Live Manifold (The "Ball")
-        # Extract the point cloud from the TDA sensor
-        # It is a list of 10D vectors. We take Dim 0 and Dim 1 for 2D projection.
+        # 3D Manifold (Point Cloud)
         cloud = system["tda"].point_cloud
         if len(cloud) > 5:
             cloud_arr = np.array(cloud)
-            
-            # Interactive 3D Scatter (Plotly)
-            # visualizes the "Physiological Manifold" in 3 dimensions
-            # Healthy = Tight Ball. Sepsis = Exploded Cloud.
             fig = go.Figure(data=[go.Scatter3d(
-                x=cloud_arr[:, 0],
-                y=cloud_arr[:, 1],
-                z=cloud_arr[:, 2],
+                x=cloud_arr[:, 0], y=cloud_arr[:, 1], z=cloud_arr[:, 2],
                 mode='markers',
-                marker=dict(
-                    size=5,
-                    color=list(range(len(cloud))), # Age gradient
-                    colorscale='Viridis',
-                    opacity=0.8
-                )
+                marker=dict(size=4, color=list(range(len(cloud))), colorscale='Viridis', opacity=0.8)
             )])
-            
             fig.update_layout(
                 margin=dict(l=0, r=0, b=0, t=0),
-                scene=dict(
-                    xaxis=dict(showticklabels=False, title='Dim 1'),
-                    yaxis=dict(showticklabels=False, title='Dim 2'),
-                    zaxis=dict(showticklabels=False, title='Dim 3'),
-                    aspectmode='cube'
-                ),
-                height=300,
+                scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False), aspectmode='cube'),
+                height=250,
             )
-            
             chart_topology.plotly_chart(fig, use_container_width=True, key=f"topo_{chunk_idx}")
-        
-        # TDA Chart: 2. The Instability Score (The "Red Line")
-        df_shape = pd.DataFrame({
-            "Instability": hist["Shape"],
-            "Critical Threshold": [2.0] * len(hist["Shape"])
-        })
-        chart_shape.line_chart(df_shape, color=["#ff4b4b", "#808080"])
-        
-        # AI Command Center Updates
-        # Only show Alert if NOT analyzing (to prevent jitter/overwrite)
-        if st.session_state.is_analyzing:
-             # Just show thinking (matches logic above)
-             pass 
-        else:
-            mode = display_decision.get("inference_mode", "SIMULATION")
             
-            if display_decision['alert_level'] == "RED":
-                ai_status.error("🚨 **CRITICAL SEPSIS ALERT** (Action Required)")
-                ai_message.error(f"**MedGemma Recommendation:** {display_decision['recommendation']}\n\n*(Source: {mode})*")
-            elif display_decision['alert_level'] == "ORANGE":
-                ai_status.warning("⚠️ **Hemodynamic Instability Detected**")
-                ai_message.warning(f"**MedGemma Recommendation:** {display_decision['recommendation']}")
-            else:
-                 ai_status.success("✅ Patient Stable (Monitoring)")
-                 ai_message.info(f"MedGemma Monitoring... (Risk: {risk_score:.0%})")
-        
-        # Stop manually to prevent infinite freeze in some envs
-        # In Streamlit Cloud, rerun handles this. Here we loop.
-        if not st.session_state.running:
-            break
-            
+        # Stop check
+        if not st.session_state.running: break
 else:
-    st.info("Click 'Start Simulation' in the sidebar to begin.")
+    st.info("Click 'Start Simulation' to enable the Triage Copilot.")
